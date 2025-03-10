@@ -1,204 +1,169 @@
 # =========================================================================
-# You must implement the different functions according to your problem.
-# You cannot modify the function headers because they are used by the
-# search algorithms. If you modify any headers the algorithms may not work.
+# Implementación de las funciones para el problema de misioneros y caníbales
 # =========================================================================
 
-# This function must return a list with the information needed to solve the problem.
-# (Depending on the problem, it should receive or not parameters)
-initialize.problem <- function(num_misioneros = 3, num_canibales = 3, capacidad_barca = 2) {
-  problem <- list() # Default value is an empty list.
-
-  # This attributes are compulsory
-  problem$name <- paste0("Misioneros Y Canibales (", num_misioneros, "M, ", num_canibales, "C, Barca:", capacidad_barca, ")")
+# Esta función debe devolver una lista con la información necesaria para resolver el problema.
+initialize.problem <- function(misioneros, canibales, capacidadBarca) {
+  problem <- list()
   
+  problem$name <- "Misioneros y Caníbales"
   
-  # Estado inicial: todos en la orilla izquierda
-  # [Misioneros_izq, Canibales_izq, Posición_barca, Misioneros_der, Canibales_der]
-  # Posición barca: 0 -> izquierda, 1 -> derecha
-  problem$state_initial <- c(num_misioneros, num_canibales, 0, 0, 0)
+  # Estado inicial: todos en la orilla izquierda (izquierda = 0, derecha = 1)
+  problem$state_initial <- c(misioneros, canibales, 0, capacidadBarca)
   
   # Estado final: todos en la orilla derecha
-  problem$state_final <- c(0, 0, 1, num_misioneros, num_canibales)
+  problem$state_final <- c(0, 0, 1, capacidadBarca)
   
+  problem$misioneros <- misioneros
+  problem$canibales <- canibales
+  problem$capacidadBarca <- capacidadBarca
   
-  
-  
-  
-  generate_moves <- function(capacidad_barca) {
-    movimientos <- list()
-    
-    for (misionero in 0:capacidad_barca) {
-      for (canibal in 0:capacidad_barca) {
-        # Al menos una persona debe moverse y no más que la capacidad de la barca
-        if (misionero + canibal > 0 && misionero + canibal <= capacidad_barca) {
-          movimientos <- c(movimientos, list(c(misioenro, canibal)))
-        }
+  #Acciones posibles 
+  acciones <- list()
+  for (m in 0:capacidadBarca) {
+    for (c in 0:capacidadBarca) {
+      if (m + c <= capacidadBarca && m + c > 0) {
+        acciones[[length(acciones) + 1]] <- c(m, c, 1)
+        acciones[[length(acciones) + 1]] <- c(m, c, -1)
       }
     }
-    
-    return(movimientos)
   }
   
-  # Obtener todas las combinaciones posibles
-  possible_moves <- generate_moves(capacidad_barca)
+  problem$actions_possible <- do.call(rbind, acciones)
   
-  # Función auxiliar para verificar si un estado es válido
-  is_valid_state <- function(state) {
-    misionero_izq <- state[1]
-    canibal_izq <- state[2]
-    misionero_der <- state[4]
-    canibal_der <- state[5]
+  return(problem)
+}
+
+# Verifica si una acción es aplicable en el estado dado
+is.applicable <- function (state, action, problem) {
+  
+  result <- FALSE
+  
+  c_izq <- as.numeric(state[1])
+  m_izq <- as.numeric(state[2])
+  orillaBarca <- state[3]
+  capacidadBarca <- as.numeric(state[4])
+  
+  c_der <-  problem$canibales - c_izq
+  m_der <-  problem$misioneros - m_izq
+  
+  if (is.na(action[1]) || is.na(action[2]) || is.na(action[3])) {
+    return(FALSE)
+  }
+  
+  if(orillaBarca== 0 && action[3] == -1){
+    if(action[1] > m_izq || action[2] > c_izq){
+      return(FALSE)
+    }
+    numCanibalIzqFin <- c_izq - action[2]
+    numCanibalDchaFin <- c_der + action[2]
+    numMisioneroIzqFin <- m_izq - action[1]
+    numMisioneroDchaFin <- m_der + action[1]
     
-    # Verificar que no hay números negativos
-    if (any(state < 0)) {
+    if ((numMisioneroIzqFin > 0 && numCanibalIzqFin > numMisioneroIzqFin) || 
+        (numMisioneroDchaFin > 0 && numCanibalDchaFin > numMisioneroDchaFin)) {
       return(FALSE)
     }
     
-    # Verificar la condición de los misioneros
-    # Si hay misioneros en la orilla izquierda, el número de caníbales no debe superarlos
-    if (misionero_izq > 0 && canibal_izq > misionero_izq) {
+    return(TRUE)
+  }else{
+    if(action[1] > m_der || action[2] > c_der){
       return(FALSE)
     }
+    numCanibalIzqFin <- c_izq + action[2]
+    numCanibalDchaFin <- c_der - action[2]
+    numMisioneroIzqFin <- m_izq + action[1]
+    numMisioneroDchaFin <- m_der - action[1]
     
-    # Si hay misioneros en la orilla derecha, el número de caníbales no debe superarlos
-    if (misionero_der > 0 && canibal_der > misionero_der) {
+    if ((numMisioneroIzqFin > 0 && numCanibalIzqFin > numMisioneroIzqFin) || 
+        (numMisioneroDchaFin > 0 && numCanibalDchaFin > numMisioneroDchaFin)) {
       return(FALSE)
     }
     
     return(TRUE)
   }
   
-  # Crear acciones para cruzar de izquierda a derecha
-  actions_left_to_right <- list()
-  for (i in seq_along(possible_moves)) {
-    move <- possible_moves[[i]]
-    misionero_move <- move[1]
-    canibal_move <- move[2]
-    
-    action_name <- paste0("Mover ", misionero_move, "Misionero(s) y ", canibal_move, "Canibal(es) de Izquierda a Derecha")
-    
-    action_function <- function(state, misionero_move = misionero_move, canibal_move = canibal_move) {
-      # Solo aplicable si la barca está en la orilla izquierda
-      if (state[3] != 0) {
-        return(NULL)
-      }
-      
-      # Verificar si hay suficientes misioneros y caníbales en la orilla izquierda
-      if (state[1] < misionero_move || state[2] < canibal_move) {
-        return(NULL)
-      }
-      
-      # Calcular nuevo estado
-      new_state <- c(
-        state[1] - misionero_move,       # Misioneros izquierda
-        state[2] - canibal_move,         # Caníbales izquierda
-              1,                         # Barca en derecha
-        state[4] + misionero_move,       # Misioneros derecha
-        state[5] + canibal_move          # Caníbales derecha
-      )
-      
-      # Verificar si el nuevo estado es válido
-      if (is_valid_state(new_state)) {
-        return(new_state)
-      } else {
-        return(NULL)
-      }
-    }
-    
-    actions_left_to_right[[action_name]] <- action_function
-  }
-  
-  # Crear acciones para cruzar de derecha a izquierda
-  actions_right_to_left <- list()
-  for (i in seq_along(possible_moves)) {
-    move <- possible_moves[[i]]
-    misionero_move <- move[1]
-    canibal_move <- move[2]
-    
-    action_name <- paste0("Mover ", misionero_move, "Misionero(s) y ", canibal_move, "Canibal(es) de Derecha a Izquierda")
-    
-    action_function <- function(state, misionero_move = misionero_move, canibal_move = canibal_move) {
-      # Solo aplicable si la barca está en la orilla derecha
-      if (state[3] != 1) {
-        return(NULL)
-      }
-      
-      # Verificar si hay suficientes misioneros y caníbales en la orilla derecha
-      if (state[4] < misionero_move || state[5] < canibal_move) {
-        return(NULL)
-      }
-      
-      # Calcular nuevo estado
-      new_state <- c(
-        state[1] + m_move,         # Misioneros izquierda
-        state[2] + c_move,         # Caníbales izquierda
-        0,                         # Barca en izquierda
-        state[4] - m_move,         # Misioneros derecha
-        state[5] - c_move          # Caníbales derecha
-      )
-      
-      # Verificar si el nuevo estado es válido
-      if (is_valid_state(new_state)) {
-        return(new_state)
-      } else {
-        return(NULL)
-      }
-    }
-    
-    actions_right_to_left[[action_name]] <- action_function
-  }
-  
-  problem$actions_possible <- c(actions_left_to_right, actions_right_to_left)
-
-  # You can add additional attributes
-  # problem$<additional_attribute>  <- <INSERT CODE HERE>
-
-  return(problem)
-}
-
-# Analyzes if an action can be applied in the received state.
-is.applicable <- function (state, action, problem) {
-  result <- FALSE # Default value is FALSE.
-
-  # <INSERT CODE HERE TO CHECK THE APPLICABILITY OF EACH ACTION>
-
   return(result)
 }
 
 # Returns the state resulting on applying the action over the state
 effect <- function (state, action, problem) {
-  result <- state # Default value is the current state.
-
-  # <INSERT YOUR CODE HERE TO MODIFY CURRENT STATE>
-
-  return(result)
+  result <- state 
+  
+  c_izq <- as.numeric(state[1])
+  m_izq <- as.numeric(state[2])
+  orillaBarca <- state[3]
+  capacidadBarca <- problem$capacidadBarca    
+  
+  
+  if(orillaBarca == 0 && action[3] == -1){
+    c_izq <- c_izq - action[2]
+    m_izq <- m_izq - action[1]
+    orillaBarca <- 1
+  }else{
+    c_izq <- c_izq + action[2]
+    m_izq <- m_izq + action[1]
+    orillaBarca <- 0
+  }
+  
+  return(c(c_izq, m_izq, orillaBarca))
+  
 }
 
-# Analyzes if a state is final or not
-is.final.state <- function (state, final_satate, problem) {
-  result <- FALSE # Default value is FALSE.
-
-  # <INSERT YOUR CODE HERE TO CHECK WHETHER A STATE IS FINAL OR NOT>
-
-  return(result)
+# Comprueba si un estado es final
+is.final.state <- function(state, final_state, problem) {
+  c_izq <- as.numeric(state[1])
+  m_izq <- as.numeric(state[2])
+  orilla_barca <- 1
+  
+  return(c_izq == 0 && m_izq == 0 && orilla_barca == 1)
 }
 
-# Transforms a state into a string
-to.string = function (state, problem) {
-  # <INSERT YOUR CODE HERE TO GENERATE A STRING THAT REPRESENTS THE STATE>
+# Representa un estado como una cadena
+to.string <- function(state, problem=NULL) {
+  m_izq <- as.numeric(state[1])
+  c_izq <- as.numeric(state[2])
+  
+  orillaBarca <- state[3]
+  
+  m_der <- problem$misioneros - m_izq
+  c_der <- problem$canibales - c_izq
+  
+  if(orillaBarca == 0){
+    orillaBarca <- "Izquierda"
+  }else{
+    orillaBarca <- "Derecha"
+  }
+  
+  return(paste("(Izq: ", c_izq, " C, ", m_izq, " M)-[Barca: ", orillaBarca, "]- (Der: ", c_der, " C ", m_der, " y M)", sep=""))
 }
 
-# Returns the cost of applying an action over a state
-get.cost <- function (action, state, problem) {
-  # <INSERT YOUR CODE HERE TO RETURN THE COST OF APPLYING THE ACTION ON THE STATE>
 
-  return(1) # Default value is 1.
+# Devuelve el costo de aplicar una acción
+get.cost <- function(action, state, problem) {
+  return(1) # Costo fijo de 1
 }
 
-# Heuristic function used by Informed Search Algorithms
+# Versión alternativa del costo basado en el tiempo
+get.cost.time <- function(action, state, problem) {
+  tiempo_base <- 15
+  retraso_misioneros <- tiempo_base * 0.1 * action[1]
+  retraso_canibales <- tiempo_base * 0.05 * action[2]
+  tiempo_subir_bajar <- (action[1] + action[2]) * 1
+  
+  return(tiempo_base + retraso_misioneros + retraso_canibales + tiempo_subir_bajar)
+}
+
+# Función heurística para búsqueda informada
 get.evaluation <- function(state, problem) {
-  # <INSERT YOUR CODE HERE TO RETURN THE RESULT OF THE EVALUATION FUNCTION>
+  return(state[1] + state[2])
+}
 
-	return(1) # Default value is 1.
+# Heurística alternativa
+get.evaluation.alt <- function(state, problem) {
+  personas_restantes <- state[1] + state[2]
+  if (personas_restantes == 0) {
+    return(0)
+  }
+  return(2 * personas_restantes - (1 - state[3]))
 }
