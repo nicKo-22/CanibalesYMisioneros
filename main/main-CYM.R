@@ -31,6 +31,10 @@ source("../algorithms/results-analysis/analyze-results.R")
 solve.problem <- function(problem) {
   
   # Let's see the difference between distinct algorithms
+  bfs_ts <- breadth.first.search(problem, max_iterations = 2000, count_print = 1000)
+  dfs_ts <- depth.first.search(problem, max_iterations = 2000, count_print = 1000)
+  dls_ts <- depth.limited.search(problem, max_iterations = 2000, count_print = 1000, depth_limit = 20)
+  ids_ts <- iterative.deepening.search(problem, max_iterations = 2000, count_print = 1000)
   bfs_gs <- breadth.first.search(problem, max_iterations = 2000, count_print = 1000, graph_search = TRUE)
   dfs_gs <- depth.first.search(problem, max_iterations = 2000, count_print = 1000, graph_search = TRUE)
   dls_gs <- depth.limited.search(problem, max_iterations = 2000, count_print = 1000, depth_limit = 20, graph_search = TRUE)
@@ -48,6 +52,10 @@ solve.problem <- function(problem) {
                                   dfs_gs,
                                   dls_gs,
                                   ids_gs,
+                                  bfs_ts,
+                                  dfs_ts,
+                                  dls_ts,
+                                  ids_ts,
                                   ucs_ts,
                                   ucs_gs,
                                   gbfs_ts,
