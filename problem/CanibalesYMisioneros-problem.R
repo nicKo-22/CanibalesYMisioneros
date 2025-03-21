@@ -3,13 +3,13 @@
 # =========================================================================
 
 # Esta función debe devolver una lista con la información necesaria para resolver el problema.
-initialize.problem <- function(misioneros, canibales, capacidadBarca) {
+initialize.problem <- function(canibales, misioneros, capacidadBarca) {
   problem <- list()
   
   problem$name <- "Misioneros y Caníbales"
   
   # Estado inicial: todos en la orilla izquierda (izquierda = 0, derecha = 1)
-  problem$state_initial <- c(misioneros, canibales, 0, capacidadBarca)
+  problem$state_initial <- c(canibales, misioneros, 0, capacidadBarca)
   
   # Estado final: todos en la orilla derecha
   problem$state_final <- c(0, 0, 1, capacidadBarca)
@@ -106,7 +106,7 @@ effect <- function (state, action, problem) {
     orillaBarca <- 0
   }
   
-  return(c(c_izq, m_izq, orillaBarca))
+  return(c(c_izq, m_izq, orillaBarca, capacidadBarca))
   
 }
 
@@ -140,12 +140,12 @@ to.string <- function(state, problem=NULL) {
 
 
 # Devuelve el costo de aplicar una acción
-get.cost <- function(action, state, problem) {
-  return(1) # Costo fijo de 1
-}
+#get.cost <- function(action, state, problem) {
+#  return(1) # Costo fijo de 1
+#}
 
 # Versión alternativa del costo basado en el tiempo
-get.cost.time <- function(action, state, problem) {
+get.cost<- function(action, state, problem) {
   tiempo_base <- 15
   retraso_misioneros <- tiempo_base * 0.1 * action[1]
   retraso_canibales <- tiempo_base * 0.05 * action[2]
@@ -160,10 +160,9 @@ get.evaluation <- function(state, problem) {
 }
 
 # Heurística alternativa
-get.evaluation.alt <- function(state, problem) {
-  personas_restantes <- state[1] + state[2]
-  if (personas_restantes == 0) {
-    return(0)
-  }
-  return(2 * personas_restantes - (1 - state[3]))
+get.evaluation <- function(state, problem) {
+  total_izq <- as.numeric(state[1]) + as.numeric(state[2])
+  capacidadBarca <- as.numeric(state[4])
+  
+  return(ceiling(total_izq / capacidadBarca)) # Estimación de viajes necesarios
 }

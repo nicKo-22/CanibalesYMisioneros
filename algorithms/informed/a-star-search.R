@@ -205,26 +205,40 @@ update.node <- function(existing, successor, frontier, expanded, problem) {
 # Check for repeated states
 check.repeated.state <- function(node, successor, frontier, expanded, problem) {
   # Check if the successor node is already present in frontier or expanded
-  present_in_frontier <- any(sapply(frontier, function(x) identical(x$state, successor$state)))
-  present_in_expanded <- any(sapply(expanded, function(x) identical(x$state, successor$state)))
+  present_in_frontier <- length(frontier) > 0 && any(sapply(frontier, function(x) identical(x$state, successor$state)))
+  present_in_expanded <- length(expanded) > 0 && any(sapply(expanded, function(x) identical(x$state, successor$state)))
   
   # Update the existing node if it's in frontier
   if (present_in_frontier) {
-    existing_node_index <- which(sapply(frontier, function(x) identical(x$state, successor$state)))
-    existing_node <- frontier[[existing_node_index]]
-    lists <- update.node(existing_node, successor, frontier, expanded, problem)
-    frontier <- lists[[1]]
-    expanded <- lists[[2]]
+    existing_node_indices <- which(sapply(frontier, function(x) identical(x$state, successor$state)))
+    
+    # Make sure the index exists before accessing
+    if (length(existing_node_indices) > 0) {
+      existing_node_index <- existing_node_indices[1]  # Take the first matching index
+      if (existing_node_index <= length(frontier)) {
+        existing_node <- frontier[[existing_node_index]]
+        lists <- update.node(existing_node, successor, frontier, expanded, problem)
+        frontier <- lists[[1]]
+        expanded <- lists[[2]]
+      }
+    }
   }
   
   # Update the existing node if it's in expanded
   if (present_in_expanded) {
-    existing_node_index <- which(sapply(expanded, function(x) identical(x$state, successor$state)))
-    existing_node <- expanded[[existing_node_index]]
-    lists <- update.node(existing_node, successor, frontier, expanded, problem)
-    frontier <- lists[[1]]
-    expanded <- lists[[2]]
+    existing_node_indices <- which(sapply(expanded, function(x) identical(x$state, successor$state)))
+    
+    # Make sure the index exists before accessing
+    if (length(existing_node_indices) > 0) {
+      existing_node_index <- existing_node_indices[1]  # Take the first matching index
+      if (existing_node_index <= length(expanded)) {
+        existing_node <- expanded[[existing_node_index]]
+        lists <- update.node(existing_node, successor, frontier, expanded, problem)
+        frontier <- lists[[1]]
+        expanded <- lists[[2]]
+      }
+    }
   }
   
-  return(list(frontier, expanded))
+  return(list(frontier=frontier,expanded=expanded))
 }
